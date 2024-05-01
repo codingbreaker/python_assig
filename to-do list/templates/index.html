@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background-color: #f2f2f2;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        strong {
+            font-size: 18px;
+            color: #333;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .btn-group button {
+            margin-left: 10px;
+        }
+         /* Styles for the file input button */
+         input[type="file"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        
+        <!-- Form to add a new To-Do -->
+
+        <form id="addTodoForm" action="{{ url_for('add_todo') }}" method="POST" enctype="multipart/form-data">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" required></textarea>
+            <label for="time">Time:</label>
+            <input type="time" id="time" name="time" required>
+            <label for="image">Image (Pro License):</label>
+            <!-- <input type="file" id="image" name="image"> -->
+            <button type="submit">Add</button>
+        </form>
+        
+        <!-- <form action="{{ url_for('add_todo') }}" method="POST" enctype="multipart/form-data">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" required></textarea>
+            <label for="time">Time:</label>
+            <input type="time" id="time" name="time" required>
+            <label for="image">Image (Pro License):</label>
+            <input type="file" id="image" name="image">
+            <button type="submit">Add</button>
+        </form> -->
+        
+        <!-- Display all To-Dos -->
+        <ul id="todoList">
+            {% for todo in todos %}
+                <li>
+                    <strong>{{ todo.title }}</strong><br>
+                    {{ todo.description }}
+                    <br>
+                    Time: {{ todo.time }}
+                    <br>
+                    {% if todo.images %}
+                        Image: <img src="{{ todo.images }}" alt="Image">
+                    {% endif %}
+                    <div class="btn-group">
+                        <!-- Remove <form> tags and call JavaScript functions directly -->
+                            <button onclick="deleteTodo('{{ todo.id }}')">Delete</button>
+                            <button onclick="editTodo('{{ todo.id }}', '{{ todo.title }}', '{{ todo.description }}', '{{ todo.time }}')">Edit</button>
+
+
+                            
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <script>
+    // Function to add a new To-Do using GraphQL mutation
+    function addTodo() {
+        var title = document.getElementById('title').value;
+        var description = document.getElementById('description').value;
+        var time = document.getElementById('time').value;
+        
+        // GraphQL mutation to add a new To-Do
+        var query = `mutation {
+            createTodo(title: "${title}", description: "${description}", time: "${time}") {
+                id
+                title
+                description
+                time
+            }
+        }`;
+
+        fetch('/graphql', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: query })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response (update UI or show message)
+            console.log(data);
+            // Reload the To-Do list after adding
+            loadTodos();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to delete a To-Do using GraphQL mutation
+    function deleteTodo(id) {
+        // GraphQL mutation to delete a To-Do
+        var query = `mutation {
+            deleteTodo(id: ${id})
+        }`;
+
+        fetch('/graphql', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: query })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response (update UI or show message)
+            console.log(data);
+            // Reload the To-Do list after deletion
+            loadTodos();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to edit a To-Do using GraphQL mutation
+    function editTodo(id, title, description, time) {
+    // GraphQL mutation to edit a To-Do
+    var query = `mutation {
+        editTodo(id: ${id}, title: "${title}", description: "${description}", time: "${time}") {
+            id
+            title
+            description
+            time
+        }
+    }`;
+
+    fetch('/graphql', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: query })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Handle the response (update UI or show message)
+        console.log(data);
+        // Reload the To-Do list after editing
+        loadTodos();
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+
+
+    // Function to load To-Dos from server using GraphQL query
+    function loadTodos() {
+        // GraphQL query to fetch all To-Dos
+        var query = `{
+            todos {
+                id
+                title
+                description
+                time
+            }
+        }`;
+
+        fetch('/graphql', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: query })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response (update UI with fetched To-Dos)
+            console.log(data);
+            var todoList = document.getElementById('todoList');
+            todoList.innerHTML = ''; // Clear existing list
+            data.data.todos.forEach(todo => {
+                var li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${todo.title}</strong><br>
+                    ${todo.description}<br>
+                    Time: ${todo.time}<br>
+                    <div class="btn-group">
+                        <button onclick="deleteTodo(${todo.id})">Delete</button>
+                        <button onclick="editTodo(${todo.id})">Edit</button>
+                    </div>
+                `;
+                todoList.appendChild(li);
+            });
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Load To-Dos when the page is loaded
+    window.onload = loadTodos;
+</script>
+
+</body>
+</html>
